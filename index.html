@@ -1,212 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Class Game - Parkour Challenge</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Impulse Rush</title>
+
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="game-container">
-        <!-- Main Menu -->
-        <div id="mainMenu" class="screen active">
-            <div class="menu-content">
-                <h1 class="game-title">CLASS GAME</h1>
-                <p class="subtitle">Parkour Challenge</p>
-                
-                <div class="menu-buttons">
-                    <button class="menu-btn" onclick="showDifficultySelect()">Start Game</button>
-                    <button class="menu-btn" onclick="showRules()">View Rules</button>
-                    <button class="menu-btn" onclick="showStats()">Player Stats</button>
-                </div>
-            </div>
-        </div>
 
-        <!-- Difficulty Selection -->
-        <div id="difficultySelect" class="screen">
-            <div class="difficulty-content">
-                <h2>Select Difficulty</h2>
-                
-                <div class="difficulty-grid">
-                    <div class="difficulty-card easy" onclick="selectDifficulty('easy')">
-                        <h3>EASY</h3>
-                        <p class="cost">Entry: Free</p>
-                        <p class="rules">Start: 50<br>Max: 100</p>
-                        <p class="desc">Single +50 reward available</p>
-                        <button class="select-btn">SELECT</button>
-                    </div>
+  <div id="menu">
+    <h1>IMPULSE RUSH</h1>
 
-                    <div class="difficulty-card normal" onclick="selectDifficulty('normal')">
-                        <h3>NORMAL</h3>
-                        <p class="cost">Entry: Free</p>
-                        <p class="rules">Start: 50<br>Max: 200</p>
-                        <p class="desc">+50 every 10 seconds</p>
-                        <button class="select-btn">SELECT</button>
-                    </div>
+    <select id="difficulty">
+      <option value="easy">Easy</option>
+      <option value="normal" selected>Normal</option>
+      <option value="hard">Hard</option>
+      <option value="hell">Hell</option>
+      <option value="impossible">Impossible</option>
+    </select>
 
-                    <div class="difficulty-card hard" onclick="selectDifficulty('hard')">
-                        <h3>HARD</h3>
-                        <p class="cost">Entry: Free</p>
-                        <p class="rules">Start: 100<br>Win: +300</p>
-                        <p class="desc">Challenging parkour</p>
-                        <button class="select-btn">SELECT</button>
-                    </div>
+    <button id="startButton">START GAME</button>
+  </div>
 
-                    <div class="difficulty-card hell" onclick="selectDifficulty('hell')">
-                        <h3>HELL</h3>
-                        <p class="cost">Entry: 200</p>
-                        <p class="rules">Win: +500</p>
-                        <p class="desc">Extreme difficulty</p>
-                        <button class="select-btn">SELECT</button>
-                    </div>
+  <div id="hud" class="hidden">
+    <div>SCORE: <span id="score">0</span></div>
+    <div>TIME: <span id="time">0</span></div>
+    <div>SPEED: <span id="speed">1</span>x</div>
+  </div>
 
-                    <div class="difficulty-card impossible" onclick="selectDifficulty('impossible')">
-                        <h3>IMPOSSIBLE</h3>
-                        <p class="cost">Entry: 500</p>
-                        <p class="rules">Win: +1000</p>
-                        <p class="desc">Ultimate challenge</p>
-                        <button class="select-btn">SELECT</button>
-                    </div>
-                </div>
+  <div id="countdown" class="hidden">10</div>
 
-                <button class="back-btn" onclick="backToMenu()">Back to Menu</button>
-            </div>
-        </div>
+  <div id="game" class="hidden">
+    <div class="lane" data-lane="0"></div>
+    <div class="lane" data-lane="1"></div>
+    <div class="lane" data-lane="2"></div>
+    <div class="lane" data-lane="3"></div>
+    <div class="lane" data-lane="4"></div>
 
-        <!-- Game Screen -->
-        <div id="gameScreen" class="screen">
-            <div class="game-hud">
-                <!-- Score Display -->
-                <div class="hud-section score-display">
-                    <div class="score-label">SCORE</div>
-                    <div class="score-value" id="scoreDisplay">0</div>
-                </div>
+    <div id="player"></div>
+  </div>
 
-                <!-- Timer Display -->
-                <div class="hud-section timer-display">
-                    <div class="timer-label">TIME</div>
-                    <div class="timer-value" id="timerDisplay">00:00</div>
-                    <div class="milestone-indicator" id="milestoneIndicator"></div>
-                </div>
+  <div id="gameOver" class="hidden">
+    <h1>GAME OVER</h1>
 
-                <!-- Speed Display -->
-                <div class="hud-section speed-display">
-                    <div class="speed-label">SPEED</div>
-                    <div class="speed-value" id="speedDisplay">1.0x</div>
-                </div>
+    <p>Final Score: <span id="finalScore"></span></p>
 
-                <!-- Status Display -->
-                <div class="hud-section status-display">
-                    <div class="status-label">STATUS</div>
-                    <div class="status-text" id="statusText">READY</div>
-                </div>
-            </div>
+    <button onclick="restartGame()">
+      RESTART
+    </button>
+  </div>
 
-            <!-- Game Canvas -->
-            <canvas id="gameCanvas"></canvas>
+  <script src="script.js"></script>
 
-            <!-- Floating Notifications -->
-            <div id="floatingNotifications" class="floating-notifications"></div>
-
-            <!-- Pause Menu -->
-            <div id="pauseMenu" class="pause-menu hidden">
-                <div class="pause-content">
-                    <h2>PAUSED</h2>
-                    <button onclick="resumeGame()">Resume</button>
-                    <button onclick="quitGame()">Quit to Menu</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Game Over Screen -->
-        <div id="gameOverScreen" class="screen">
-            <div class="game-over-content">
-                <h2 id="gameOverTitle">GAME OVER</h2>
-                <div class="final-stats">
-                    <div class="stat-row">
-                        <span class="stat-label">Final Score:</span>
-                        <span class="stat-value" id="finalScore">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Time Survived:</span>
-                        <span class="stat-value" id="timeSurvived">0s</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Difficulty:</span>
-                        <span class="stat-value" id="difficultyDisplay">Normal</span>
-                    </div>
-                    <div class="stat-row win-amount" id="winAmount" style="display:none;">
-                        <span class="stat-label">Winnings:</span>
-                        <span class="stat-value" id="winningsAmount">0</span>
-                    </div>
-                </div>
-
-                <div class="game-over-buttons">
-                    <button class="btn" onclick="playAgain()">Play Again</button>
-                    <button class="btn" onclick="changeDifficulty()">Change Difficulty</button>
-                    <button class="btn" onclick="backToMenu()">Main Menu</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Rules Screen -->
-        <div id="rulesScreen" class="screen">
-            <div class="rules-content">
-                <h2>Official Rules</h2>
-                <div class="rules-list">
-                    <div class="rule-item">
-                        <h4>Ban Authority</h4>
-                        <p>We reserve the right to ban any player from participating at any time for any reason.</p>
-                    </div>
-                    <div class="rule-item">
-                        <h4>Code Integrity</h4>
-                        <p>Editing, modifying, or attempting to alter the game code in any way is strictly prohibited.</p>
-                    </div>
-                    <div class="rule-item">
-                        <h4>Intended Play Rule</h4>
-                        <p>You may not play the game in any way not intended by the creator. Exploits, glitches, or unintended mechanics are forbidden.</p>
-                    </div>
-                    <div class="rule-item">
-                        <h4>Score Integrity</h4>
-                        <p>You are not allowed to edit, modify, or falsify your score.</p>
-                    </div>
-                    <div class="rule-item">
-                        <h4>Operator Presence</h4>
-                        <p>All gameplay must be performed in front of the operator. Remote or unsupervised play is not allowed.</p>
-                    </div>
-                    <div class="rule-item">
-                        <h4>Difficulty Restrictions</h4>
-                        <p>We reserve the right to restrict or ban you from specific difficulty levels.</p>
-                    </div>
-                    <div class="rule-item">
-                        <h4>Double or Nothing Offer</h4>
-                        <p>At our discretion, we may offer a double‑or‑nothing challenge. Acceptance is voluntary but binding.</p>
-                    </div>
-                    <div class="rule-item">
-                        <h4>Penalty Rule</h4>
-                        <p>If you break any rule, your payment becomes ours. You must repay the entry cost to continue playing.</p>
-                    </div>
-                    <div class="rule-item">
-                        <h4>Reputation Cost</h4>
-                        <p>If you have a reputation for cheating or being really good we may edit the cost or the prizes for you. But we must tell you before you start the game.</p>
-                    </div>
-                </div>
-                <button class="back-btn" onclick="backToMenu()">Back to Menu</button>
-            </div>
-        </div>
-
-        <!-- Stats Screen -->
-        <div id="statsScreen" class="screen">
-            <div class="stats-content">
-                <h2>Player Statistics</h2>
-                <div class="stats-grid" id="statsGrid">
-                    <p>No statistics yet. Play a game to see your stats!</p>
-                </div>
-                <button class="back-btn" onclick="backToMenu()">Back to Menu</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="game.js"></script>
 </body>
 </html>
