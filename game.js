@@ -18,7 +18,8 @@ const gameState = {
     gameStartTime: 0,
     survivalBonusApplied: false,
     gracePeriodActive: true,
-    gracePeriodDuration: 3000, // 3 second grace period
+    gracePeriodDuration: 3000,
+    platformMovementIntervalId: null,
 };
 
 // Difficulty Settings
@@ -86,7 +87,7 @@ const difficultySettings = {
 
 // Game Objects (Platforms and Obstacles)
 class Platform {
-    constructor(x, y, width, height, type = 'normal') {
+    constructor(x, y, width, height, type = 'normal', isStatic = false) {
         this.x = x;
         this.y = y;
         this.width = width;
@@ -94,9 +95,46 @@ class Platform {
         this.type = type;
         this.color = '#00D9FF';
         this.highlighted = false;
+        this.isStatic = isStatic;
+        this.opacity = 1.0;
+        this.moveDirection = Math.random() > 0.5 ? 1 : -1;
+        this.moveSpeed = 1 + Math.random() * 2;
+        this.fadeOutStartTime = null;
+        this.createdAt = Date.now();
+        this.lifespan = 8000 + Math.random() * 4000; // 8-12 seconds
+    }
+
+    update() {
+        if (this.isStatic) return;
+
+        // Horizontal movement
+        this.x += this.moveSpeed * this.moveDirection;
+
+        // Bounce off walls
+        if (this.x < 0 || this.x + this.width > canvas.width) {
+            this.moveDirection *= -1;
+        }
+
+        // Random vertical movement
+        if (Math.random() < 0.02) {
+            this.y += (Math.random() - 0.5) * 2;
+        }
+
+        // Keep platforms within vertical bounds
+        if (this.y < 50) this.y = 50;
+        if (this.y > canvas.height - 100) this.y = canvas.height - 100;
+
+        // Fade out near end of lifespan
+        const age = Date.now() - this.createdAt;
+        const fadeStartTime = this.lifespan - 1500;
+        
+        if (age > fadeStartTime) {
+            this.opacity = Math.max(0, 1 - (age - fadeStartTime) / 1500);
+        }
     }
 
     draw(ctx) {
+        ctx.globalAlpha = this.opacity;
         ctx.fillStyle = this.highlighted ? '#FFBE0B' : this.color;
         ctx.fillRect(this.x, this.y, this.width, this.height);
         
@@ -105,11 +143,18 @@ class Platform {
             ctx.lineWidth = 3;
             ctx.strokeRect(this.x, this.y, this.width, this.height);
         }
+        ctx.globalAlpha = 1.0;
     }
 
     contains(x, y) {
         return x >= this.x && x <= this.x + this.width && 
-               y >= this.y && y <= this.y + this.height;
+               y >= this.y && y <= this.y + this.height &&
+               this.opacity > 0.3; // Only collide if not too faded out
+    }
+
+    isExpired() {
+        const age = Date.now() - this.createdAt;
+        return age > this.lifespan;
     }
 }
 
@@ -136,7 +181,6 @@ class Player {
     }
 
     draw(ctx) {
-        // Draw with transparency if invincible
         ctx.globalAlpha = this.isInvincible ? 0.6 : 1.0;
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x, this.y, this.width, this.height);
@@ -229,10 +273,9 @@ function initializeGame() {
     gameState.colorSchemeIndex = 0;
     gameState.gracePeriodActive = true;
 
-    // Activate grace period - player is invincible for first 3 seconds
+    // Activate grace period
     player.setInvincible(gameState.gracePeriodDuration);
     
-    // End grace period after 3 seconds
     gracePeriodTimeoutId = setTimeout(() => {
         gameState.gracePeriodActive = false;
         updateStatusText('GRACE PERIOD OVER - STAY SHARP!');
@@ -241,6 +284,8 @@ function initializeGame() {
     startSpeedScaling();
     startTimedRewards();
     startColorSchemeChange();
+    startPlatformMovement();
+    startPlatformSpawner();
     startGameLoop();
     updateStatusText('GAME STARTED - 3 SECOND GRACE PERIOD');
 }
@@ -249,18 +294,18 @@ function generatePlatforms() {
     const platformList = [];
     
     // Create starting platform at bottom for safe spawn
-    const startPlatform = new Platform(canvas.width / 2 - 75, canvas.height - 150, 150, 20, 'normal');
+    const startPlatform = new Platform(canvas.width / 2 - 75, canvas.height - 150, 150, 20, 'normal', true);
     startPlatform.color = '#00FF00';
     platformList.push(startPlatform);
     
-    // Generate other platforms with better spacing
-    for (let i = 0; i < 14; i++) {
+    // Generate initial dynamic platforms
+    for (let i = 0; i < 10; i++) {
         const x = Math.random() * (canvas.width - 100);
-        const y = 100 + i * 80;
-        const width = 100 + Math.random() * 50;
+        const y = 100 + i * 100;
+        const width = 80 + Math.random() * 60;
         const height = 15;
         
-        platformList.push(new Platform(x, y, width, height, 'normal'));
+        platformList.push(new Platform(x, y, width, height, 'dynamic', false));
     }
     
     return platformList;
@@ -273,12 +318,10 @@ function generateObstacles() {
     for (let i = 0; i < count; i++) {
         let x, y, validPosition = false;
         
-        // Keep obstacles away from spawn area (bottom 200px)
         while (!validPosition) {
             x = Math.random() * (canvas.width - 40);
-            y = Math.random() * (canvas.height - 240) + 40; // Keep out of bottom spawn zone
+            y = Math.random() * (canvas.height - 240) + 40;
             
-            // Ensure obstacles are not too close to starting platform
             const startPlatformY = canvas.height - 150;
             const distanceFromStart = Math.abs(y - startPlatformY);
             
@@ -291,6 +334,40 @@ function generateObstacles() {
     }
     
     return obstacleList;
+}
+
+function startPlatformMovement() {
+    gameState.platformMovementIntervalId = setInterval(() => {
+        if (gameState.gameRunning && !gameState.gamePaused) {
+            platforms.forEach(platform => {
+                platform.update();
+            });
+        }
+    }, 30);
+}
+
+function startPlatformSpawner() {
+    setInterval(() => {
+        if (gameState.gameRunning && !gameState.gamePaused) {
+            // Remove expired platforms
+            platforms = platforms.filter(p => {
+                if (!p.isStatic && p.isExpired()) {
+                    return false;
+                }
+                return true;
+            });
+
+            // Spawn new platforms to keep count consistent
+            while (platforms.length < 12) {
+                const x = Math.random() * (canvas.width - 100);
+                const y = Math.random() * (canvas.height - 200) + 50;
+                const width = 80 + Math.random() * 60;
+                const height = 15;
+                
+                platforms.push(new Platform(x, y, width, height, 'dynamic', false));
+            }
+        }
+    }, 1500);
 }
 
 function startGameLoop() {
@@ -331,14 +408,14 @@ function gameLoop() {
                 player.y + player.height >= platform.y &&
                 player.y + player.height <= platform.y + platform.height + 10 &&
                 player.x + player.width > platform.x &&
-                player.x < platform.x + platform.width) {
+                player.x < platform.x + platform.width &&
+                platform.opacity > 0.3) {
                 player.velocityY = 0;
                 player.jumping = false;
                 player.y = platform.y - player.height;
             }
         });
 
-        // Only check obstacle collisions if grace period is over
         if (!gameState.gracePeriodActive && !player.isInvincible) {
             obstacles.forEach(obstacle => {
                 if (player.x < obstacle.x + obstacle.width &&
@@ -398,7 +475,9 @@ function startColorSchemeChange() {
             gameState.currentColorScheme = gameState.colorSchemes[gameState.colorSchemeIndex];
             
             platforms.forEach((p, i) => {
-                p.color = gameState.currentColorScheme[i % 3];
+                if (!p.isStatic) {
+                    p.color = gameState.currentColorScheme[i % 3];
+                }
             });
             
             document.body.style.borderLeft = `5px solid ${gameState.currentColorScheme[0]}`;
@@ -460,6 +539,7 @@ function gameOver() {
     clearInterval(speedIntervalId);
     clearInterval(rewardIntervalId);
     clearInterval(colorChangeIntervalId);
+    clearInterval(gameState.platformMovementIntervalId);
     clearTimeout(gracePeriodTimeoutId);
     cancelAnimationFrame(gameLoopId);
     
@@ -522,6 +602,7 @@ function backToMenu() {
     clearInterval(speedIntervalId);
     clearInterval(rewardIntervalId);
     clearInterval(colorChangeIntervalId);
+    clearInterval(gameState.platformMovementIntervalId);
     clearTimeout(gracePeriodTimeoutId);
     cancelAnimationFrame(gameLoopId);
     switchScreen('mainMenu');
