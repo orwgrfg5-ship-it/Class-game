@@ -17,6 +17,8 @@ const gameState = {
     ],
     gameStartTime: 0,
     survivalBonusApplied: false,
+    gracePeriodActive: true,
+    gracePeriodDuration: 3000, // 3 second grace period
 };
 
 // Difficulty Settings
@@ -123,6 +125,7 @@ class Player {
         this.color = '#FF006E';
         this.gravity = 0.6;
         this.jumpPower = 15;
+        this.isInvincible = false;
     }
 
     update() {
@@ -133,11 +136,14 @@ class Player {
     }
 
     draw(ctx) {
+        // Draw with transparency if invincible
+        ctx.globalAlpha = this.isInvincible ? 0.6 : 1.0;
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x, this.y, this.width, this.height);
         ctx.strokeStyle = '#FFBE0B';
         ctx.lineWidth = 2;
         ctx.strokeRect(this.x, this.y, this.width, this.height);
+        ctx.globalAlpha = 1.0;
     }
 
     jump() {
@@ -153,6 +159,13 @@ class Player {
 
     moveRight() {
         this.velocityX = 6;
+    }
+
+    setInvincible(duration) {
+        this.isInvincible = true;
+        setTimeout(() => {
+            this.isInvincible = false;
+        }, duration);
     }
 }
 
@@ -200,6 +213,7 @@ let gameLoopId = null;
 let speedIntervalId = null;
 let rewardIntervalId = null;
 let colorChangeIntervalId = null;
+let gracePeriodTimeoutId = null;
 
 function initializeGame() {
     player = new Player(canvas.width / 2, canvas.height - 100);
@@ -213,18 +227,34 @@ function initializeGame() {
     gameState.gamePaused = false;
     gameState.gameStartTime = Date.now();
     gameState.colorSchemeIndex = 0;
+    gameState.gracePeriodActive = true;
+
+    // Activate grace period - player is invincible for first 3 seconds
+    player.setInvincible(gameState.gracePeriodDuration);
+    
+    // End grace period after 3 seconds
+    gracePeriodTimeoutId = setTimeout(() => {
+        gameState.gracePeriodActive = false;
+        updateStatusText('GRACE PERIOD OVER - STAY SHARP!');
+    }, gameState.gracePeriodDuration);
 
     startSpeedScaling();
     startTimedRewards();
     startColorSchemeChange();
     startGameLoop();
-    updateStatusText('GAME STARTED');
+    updateStatusText('GAME STARTED - 3 SECOND GRACE PERIOD');
 }
 
 function generatePlatforms() {
     const platformList = [];
     
-    for (let i = 0; i < 15; i++) {
+    // Create starting platform at bottom for safe spawn
+    const startPlatform = new Platform(canvas.width / 2 - 75, canvas.height - 150, 150, 20, 'normal');
+    startPlatform.color = '#00FF00';
+    platformList.push(startPlatform);
+    
+    // Generate other platforms with better spacing
+    for (let i = 0; i < 14; i++) {
         const x = Math.random() * (canvas.width - 100);
         const y = 100 + i * 80;
         const width = 100 + Math.random() * 50;
@@ -241,8 +271,22 @@ function generateObstacles() {
     const count = ['easy', 'normal'].includes(gameState.difficulty) ? 5 : 10;
     
     for (let i = 0; i < count; i++) {
-        const x = Math.random() * (canvas.width - 40);
-        const y = Math.random() * (canvas.height - 40);
+        let x, y, validPosition = false;
+        
+        // Keep obstacles away from spawn area (bottom 200px)
+        while (!validPosition) {
+            x = Math.random() * (canvas.width - 40);
+            y = Math.random() * (canvas.height - 240) + 40; // Keep out of bottom spawn zone
+            
+            // Ensure obstacles are not too close to starting platform
+            const startPlatformY = canvas.height - 150;
+            const distanceFromStart = Math.abs(y - startPlatformY);
+            
+            if (distanceFromStart > 100) {
+                validPosition = true;
+            }
+        }
+        
         obstacleList.push(new Obstacle(x, y, 40, 40, 'spike'));
     }
     
@@ -294,14 +338,17 @@ function gameLoop() {
             }
         });
 
-        obstacles.forEach(obstacle => {
-            if (player.x < obstacle.x + obstacle.width &&
-                player.x + player.width > obstacle.x &&
-                player.y < obstacle.y + obstacle.height &&
-                player.y + player.height > obstacle.y) {
-                gameOver();
-            }
-        });
+        // Only check obstacle collisions if grace period is over
+        if (!gameState.gracePeriodActive && !player.isInvincible) {
+            obstacles.forEach(obstacle => {
+                if (player.x < obstacle.x + obstacle.width &&
+                    player.x + player.width > obstacle.x &&
+                    player.y < obstacle.y + obstacle.height &&
+                    player.y + player.height > obstacle.y) {
+                    gameOver();
+                }
+            });
+        }
 
         if (player.y > canvas.height) {
             gameOver();
@@ -413,6 +460,7 @@ function gameOver() {
     clearInterval(speedIntervalId);
     clearInterval(rewardIntervalId);
     clearInterval(colorChangeIntervalId);
+    clearTimeout(gracePeriodTimeoutId);
     cancelAnimationFrame(gameLoopId);
     
     const difficulty = difficultySettings[gameState.difficulty];
@@ -474,6 +522,7 @@ function backToMenu() {
     clearInterval(speedIntervalId);
     clearInterval(rewardIntervalId);
     clearInterval(colorChangeIntervalId);
+    clearTimeout(gracePeriodTimeoutId);
     cancelAnimationFrame(gameLoopId);
     switchScreen('mainMenu');
 }
