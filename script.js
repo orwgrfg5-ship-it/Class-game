@@ -4,8 +4,11 @@ let time = 0;
 let alive = false;
 
 let playerLane = 2;
-
 let platforms = [];
+
+let gameLoop;
+let timerLoop;
+let countdownLoop;
 
 const colors = ["#ff004c","#00e5ff","#ffea00","#7dff00","#ff7b00"];
 
@@ -16,6 +19,9 @@ const diff = {
   hell: -200,
   impossible: -500
 };
+
+let countdown = 10;
+let rigSpike = false;
 
 function startGame() {
 
@@ -31,12 +37,14 @@ function startGame() {
   time = 0;
   alive = true;
 
+  playerLane = 2;
+  countdown = 10;
+
   platforms = [];
 
-  playerLane = 2;
   movePlayer();
-
   spawnPlatforms();
+
   startLoops();
 }
 
@@ -57,7 +65,7 @@ function createPlatform(y) {
 
   p.classList.add("platform");
 
-  p.classList.add(Math.random() > 0.3 ? "safe" : "danger");
+  p.classList.add(Math.random() > 0.28 ? "safe" : "danger");
 
   p.style.bottom = y + "px";
 
@@ -70,24 +78,50 @@ function createPlatform(y) {
 
 function startLoops() {
 
-  setInterval(updateGame, 16);
+  clearInterval(gameLoop);
+  clearInterval(timerLoop);
+  clearInterval(countdownLoop);
 
-  setInterval(() => {
+  gameLoop = setInterval(updateGame, 16);
+
+  timerLoop = setInterval(() => {
 
     if (!alive) return;
 
     time++;
 
-    if (time % 2 === 0) speed += 0.1;
+    // SPEED SCALING (every 2 sec)
+    if (time % 2 === 0) speed += 0.12;
 
+    // SURVIVAL BONUS
     if (time === 5) score += 50;
 
+    // TIMED REWARD
     if (time % 10 === 0) score += 50;
 
+    // FLASH EFFECT
     document.body.style.background =
       colors[Math.floor(Math.random() * colors.length)];
 
+    // RIG SYSTEM (fake “impossible moment” spikes)
+    if (time > 15 && Math.random() < 0.2) {
+      rigSpike = true;
+      setTimeout(() => rigSpike = false, 1200);
+    }
+
     updateHUD();
+
+  }, 1000);
+
+  countdownLoop = setInterval(() => {
+
+    if (!alive) return;
+
+    countdown--;
+
+    if (countdown <= 0) countdown = 10;
+
+    document.getElementById("countdown").innerText = countdown;
 
   }, 1000);
 }
@@ -100,21 +134,36 @@ function updateGame() {
 
     let y = parseFloat(p.style.bottom);
 
-    y -= speed * 4;
+    let finalSpeed = speed;
+
+    if (rigSpike) finalSpeed *= 1.7;
+
+    y -= finalSpeed * 4;
 
     p.style.bottom = y + "px";
 
     if (y < -120) {
       p.remove();
       platforms = platforms.filter(x => x !== p);
-      createPlatform(1000);
+      createPlatform(900);
     }
 
+    // collision zone
     if (y < 120 && y > 40) {
 
       let lane = parseInt(p.dataset.lane);
 
       if (lane !== playerLane) {
+
+        // near miss detection
+        if (Math.abs(lane - playerLane) === 1) {
+          document.getElementById("player").classList.add("near");
+
+          setTimeout(() => {
+            document.getElementById("player").classList.remove("near");
+          }, 120);
+        }
+
         endGame();
       }
     }
@@ -139,7 +188,6 @@ function movePlayer() {
   let p = document.getElementById("player");
 
   let center = window.innerWidth / 2;
-
   let laneWidth = 130;
 
   p.style.left =
@@ -147,6 +195,7 @@ function movePlayer() {
 }
 
 function updateHUD() {
+
   document.getElementById("score").innerText = score;
   document.getElementById("time").innerText = time;
   document.getElementById("speed").innerText = speed.toFixed(1);
@@ -159,4 +208,8 @@ function endGame() {
   document.getElementById("gameOver").classList.remove("hidden");
 
   document.getElementById("finalScore").innerText = score;
+
+  clearInterval(gameLoop);
+  clearInterval(timerLoop);
+  clearInterval(countdownLoop);
 }
