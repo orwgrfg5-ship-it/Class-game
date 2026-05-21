@@ -89,7 +89,7 @@ class Platform {
         this.y = y;
         this.width = width;
         this.height = height;
-        this.type = type; // normal, moving, rotating, shrinking
+        this.type = type;
         this.color = '#00D9FF';
         this.highlighted = false;
     }
@@ -102,8 +102,6 @@ class Platform {
             ctx.strokeStyle = '#FFBE0B';
             ctx.lineWidth = 3;
             ctx.strokeRect(this.x, this.y, this.width, this.height);
-            ctx.shadowColor = 'rgba(255, 190, 11, 0.8)';
-            ctx.shadowBlur = 15;
         }
     }
 
@@ -131,7 +129,7 @@ class Player {
         this.velocityY += this.gravity;
         this.y += this.velocityY;
         this.x += this.velocityX;
-        this.velocityX *= 0.95; // Friction
+        this.velocityX *= 0.95;
     }
 
     draw(ctx) {
@@ -175,8 +173,6 @@ class Obstacle {
         ctx.rotate(this.rotation);
         ctx.fillStyle = this.color;
         ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
-        ctx.shadowColor = 'rgba(251, 86, 7, 0.6)';
-        ctx.shadowBlur = 10;
         ctx.restore();
     }
 
@@ -186,7 +182,6 @@ class Obstacle {
     }
 }
 
-// Game Canvas and Rendering
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -198,7 +193,6 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// Game Objects
 let player = null;
 let platforms = [];
 let obstacles = [];
@@ -207,7 +201,6 @@ let speedIntervalId = null;
 let rewardIntervalId = null;
 let colorChangeIntervalId = null;
 
-// Initialize Game
 function initializeGame() {
     player = new Player(canvas.width / 2, canvas.height - 100);
     platforms = generatePlatforms();
@@ -230,7 +223,6 @@ function initializeGame() {
 
 function generatePlatforms() {
     const platformList = [];
-    const difficulty = difficultySettings[gameState.difficulty];
     
     for (let i = 0; i < 15; i++) {
         const x = Math.random() * (canvas.width - 100);
@@ -246,7 +238,6 @@ function generatePlatforms() {
 
 function generateObstacles() {
     const obstacleList = [];
-    const difficulty = difficultySettings[gameState.difficulty];
     const count = ['easy', 'normal'].includes(gameState.difficulty) ? 5 : 10;
     
     for (let i = 0; i < count; i++) {
@@ -263,11 +254,9 @@ function startGameLoop() {
 }
 
 function gameLoop() {
-    // Clear canvas
     ctx.fillStyle = gameState.currentColorScheme ? gameState.currentColorScheme[2] : '#050810';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Add grid effect
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.lineWidth = 1;
     for (let i = 0; i < canvas.width; i += 40) {
@@ -284,18 +273,15 @@ function gameLoop() {
     }
 
     if (!gameState.gamePaused && gameState.gameRunning) {
-        // Update game state
         player.update();
         gameState.timeElapsed = Math.floor((Date.now() - gameState.gameStartTime) / 1000);
 
-        // Apply survival bonus at 5 seconds
         if (gameState.timeElapsed >= 5 && !gameState.survivalBonusApplied) {
             gameState.score += difficultySettings[gameState.difficulty].survivalBonus;
             gameState.survivalBonusApplied = true;
             showNotification(`+${difficultySettings[gameState.difficulty].survivalBonus}`, 'milestone');
         }
 
-        // Check platform collisions
         platforms.forEach(platform => {
             if (player.jumping && player.velocityY > 0 && 
                 player.y + player.height >= platform.y &&
@@ -308,7 +294,6 @@ function gameLoop() {
             }
         });
 
-        // Check obstacle collisions
         obstacles.forEach(obstacle => {
             if (player.x < obstacle.x + obstacle.width &&
                 player.x + player.width > obstacle.x &&
@@ -318,23 +303,19 @@ function gameLoop() {
             }
         });
 
-        // Check boundaries
         if (player.y > canvas.height) {
             gameOver();
         }
 
-        // Update UI
         updateScore();
         updateTimer();
         updateSpeed();
     }
 
-    // Draw objects
     platforms.forEach(platform => platform.draw(ctx));
     obstacles.forEach(obstacle => obstacle.draw(ctx));
     player.draw(ctx);
 
-    // Continue loop
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
@@ -343,11 +324,7 @@ function startSpeedScaling() {
     speedIntervalId = setInterval(() => {
         if (gameState.gameRunning && !gameState.gamePaused) {
             gameState.speedMultiplier += difficulty.speedIncrement * gameState.speedMultiplier;
-            
-            // Adjust player jump power based on speed
             player.jumpPower = 15 + (gameState.speedMultiplier - 1) * 5;
-            
-            // Adjust gravity
             player.gravity = 0.6 + (gameState.speedMultiplier - 1) * 0.2;
         }
     }, difficulty.speedIncrementInterval);
@@ -373,12 +350,10 @@ function startColorSchemeChange() {
             gameState.colorSchemeIndex = (gameState.colorSchemeIndex + 1) % gameState.colorSchemes.length;
             gameState.currentColorScheme = gameState.colorSchemes[gameState.colorSchemeIndex];
             
-            // Update platform colors
             platforms.forEach((p, i) => {
                 p.color = gameState.currentColorScheme[i % 3];
             });
             
-            // Flash effect
             document.body.style.borderLeft = `5px solid ${gameState.currentColorScheme[0]}`;
         }
     }, 500);
@@ -394,7 +369,6 @@ function updateTimer() {
     document.getElementById('timerDisplay').textContent = 
         `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     
-    // Update milestone indicators
     updateMilestones();
 }
 
@@ -441,7 +415,6 @@ function gameOver() {
     clearInterval(colorChangeIntervalId);
     cancelAnimationFrame(gameLoopId);
     
-    // Calculate winnings
     const difficulty = difficultySettings[gameState.difficulty];
     let winnings = 0;
     
@@ -449,7 +422,6 @@ function gameOver() {
         winnings = difficulty.winReward || (difficulty.maxScore - difficulty.startScore);
     }
     
-    // Store stats
     gameState.playerStats.push({
         difficulty: difficulty.name,
         score: gameState.score,
@@ -458,7 +430,6 @@ function gameOver() {
         date: new Date().toLocaleString(),
     });
     
-    // Show game over screen
     showGameOverScreen(winnings);
 }
 
@@ -478,7 +449,6 @@ function showGameOverScreen(winnings) {
     switchScreen('gameOverScreen');
 }
 
-// Screen Management
 function switchScreen(screenId) {
     document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
@@ -512,7 +482,6 @@ function selectDifficulty(difficulty) {
     gameState.difficulty = difficulty;
     switchScreen('gameScreen');
     
-    // Show any applicable warnings
     const settings = difficultySettings[difficulty];
     if (settings.cost > 0) {
         updateStatusText(`ENTRY FEE: ${settings.cost}`);
@@ -561,7 +530,6 @@ function updateStatsDisplay() {
     `).join('');
 }
 
-// Keyboard Controls
 document.addEventListener('keydown', (e) => {
     if (!gameState.gameRunning || gameState.gamePaused) return;
     
@@ -579,7 +547,6 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Touch Controls for Mobile
 let touchStartX = 0;
 let touchStartY = 0;
 
@@ -612,7 +579,6 @@ canvas.addEventListener('touchend', (e) => {
     }
 });
 
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     switchScreen('mainMenu');
 });
