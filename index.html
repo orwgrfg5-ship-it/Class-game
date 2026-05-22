@@ -7,9 +7,22 @@
 </head>
 <body>
 
-<!-- START MENU -->
+<!-- MENU -->
 <div id="menu">
+
   <h1>IMPULSE RUSH</h1>
+
+  <div id="menuButtons">
+    <button onclick="showPlay()">PLAY</button>
+    <button onclick="showRules()">RULES</button>
+    <button onclick="showLeaderboard()">LEADERBOARD</button>
+  </div>
+
+</div>
+
+<!-- PLAY MENU -->
+<div id="playMenu" class="hidden">
+  <h2>Select Difficulty</h2>
 
   <select id="difficulty">
     <option value="easy">Easy</option>
@@ -20,16 +33,40 @@
   </select>
 
   <button onclick="startGame()">START</button>
+  <button onclick="backMenu()">BACK</button>
 </div>
 
-<!-- HUD -->
+<!-- RULES -->
+<div id="rulesMenu" class="hidden">
+  <h2>RULES</h2>
+
+  <div class="box">
+    Speed increases every 2 seconds.<br>
+    +50 at 5 seconds survival.<br>
+    +50 every 10 seconds.<br>
+    Don’t miss jumps.<br>
+    One mistake = death.
+  </div>
+
+  <button onclick="backMenu()">BACK</button>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="leaderboardMenu" class="hidden">
+  <h2>LEADERBOARD</h2>
+
+  <div id="leaderboard"></div>
+
+  <button onclick="backMenu()">BACK</button>
+</div>
+
+<!-- GAME -->
 <div id="hud" class="hidden">
   <div>SCORE: <span id="score">0</span></div>
   <div>TIME: <span id="time">0</span></div>
   <div>SPEED: <span id="speed">1</span>x</div>
 </div>
 
-<!-- GAME -->
 <div id="game" class="hidden">
   <div id="track"></div>
   <div id="player"></div>
@@ -39,7 +76,6 @@
 <div id="gameOver" class="hidden">
   <h1>GAME OVER</h1>
   <div>Score: <span id="finalScore"></span></div>
-  <button onclick="location.reload()">RESTART</button>
 </div>
 
 <script src="script.js"></script>
