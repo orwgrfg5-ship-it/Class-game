@@ -36,51 +36,43 @@ button, select {
   font-weight: bold;
 }
 
-#countdown {
-  position: fixed;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 50px;
-}
-
-.lanes {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 120px;
-}
-
-.lane {
-  width: 120px;
-  height: 100vh;
-  background: rgba(255,255,255,0.05);
+#game {
   position: relative;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
+  background: black;
 }
 
-.platform {
+#track {
   position: absolute;
+  bottom: 120px;
   width: 100%;
-  height: 80px;
+  height: 4px;
+  background: white;
+  opacity: 0.3;
 }
-
-.safe { background: lime; }
-.danger { background: red; }
 
 #player {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   background: cyan;
-  border-radius: 50%;
-  position: fixed;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  transition: 0.1s;
+  position: absolute;
+  bottom: 120px;
+  left: 120px;
 }
 
-.near {
-  background: yellow !important;
-  transform: translateX(-50%) scale(1.2);
+.obstacle {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  bottom: 120px;
+}
+
+.spike {
+  background: red;
+}
+
+.block {
+  background: lime;
 }
