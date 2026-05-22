@@ -9,29 +9,50 @@ let jumping = false;
 
 let obstacles = [];
 
-let loopId = null;
-
 const colors = ["#ff004c","#00e5ff","#ffea00","#7dff00","#ff7b00"];
 
-const diff = {
-  easy: 50,
-  normal: 50,
-  hard: 100,
-  hell: -200,
-  impossible: -500
-};
+let last = 0;
+
+/* ---------------- MENU ---------------- */
+
+function showPlay() {
+  hideAllMenus();
+  document.getElementById("playMenu").classList.remove("hidden");
+}
+
+function showRules() {
+  hideAllMenus();
+  document.getElementById("rulesMenu").classList.remove("hidden");
+}
+
+function showLeaderboard() {
+  hideAllMenus();
+  document.getElementById("leaderboardMenu").classList.remove("hidden");
+  loadLeaderboard();
+}
+
+function backMenu() {
+  hideAllMenus();
+  document.getElementById("menu").classList.remove("hidden");
+}
+
+function hideAllMenus() {
+  document.getElementById("menu").classList.add("hidden");
+  document.getElementById("playMenu").classList.add("hidden");
+  document.getElementById("rulesMenu").classList.add("hidden");
+  document.getElementById("leaderboardMenu").classList.add("hidden");
+}
+
+/* ---------------- GAME START ---------------- */
 
 function startGame() {
 
-  // hide menu, show game
-  document.getElementById("menu").classList.add("hidden");
+  hideAllMenus();
+
   document.getElementById("game").classList.remove("hidden");
   document.getElementById("hud").classList.remove("hidden");
-  document.getElementById("gameOver").classList.add("hidden");
 
-  let d = document.getElementById("difficulty").value;
-
-  score = diff[d];
+  score = 0;
   speed = 6;
   time = 0;
   alive = true;
@@ -42,37 +63,10 @@ function startGame() {
 
   obstacles = [];
 
-  document.querySelectorAll(".obstacle").forEach(o => o.remove());
-
   requestAnimationFrame(loop);
 }
 
-/* MENU RETURN ON GAME OVER (important fix) */
-function endGame() {
-
-  alive = false;
-
-  document.getElementById("gameOver").classList.remove("hidden");
-
-  document.getElementById("finalScore").innerText = Math.floor(score);
-
-  setTimeout(() => {
-    document.getElementById("menu").classList.remove("hidden");
-  }, 1500);
-}
-
-/* INPUT */
-window.addEventListener("keydown", e => {
-  if (!alive) return;
-
-  if (e.code === "Space" && !jumping) {
-    velocity = -12;
-    jumping = true;
-  }
-});
-
-/* MAIN LOOP */
-let last = 0;
+/* ---------------- GAME LOOP ---------------- */
 
 function loop(t) {
 
@@ -87,12 +81,13 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 
+/* ---------------- UPDATE ---------------- */
+
 function update(dt) {
 
   time += dt * 0.016;
 
   if (Math.floor(time) % 2 === 0) speed += 0.02;
-
   if (Math.floor(time) === 5) score += 50;
   if (Math.floor(time) % 10 === 0) score += 50;
 
@@ -101,7 +96,6 @@ function update(dt) {
       colors[Math.floor(Math.random() * colors.length)];
   }
 
-  // physics
   velocity += 0.6;
   playerY -= velocity;
 
@@ -135,7 +129,8 @@ function update(dt) {
   updateHUD();
 }
 
-/* OBSTACLES */
+/* ---------------- OBSTACLES ---------------- */
+
 function createObstacle() {
 
   let o = document.createElement("div");
@@ -150,9 +145,66 @@ function createObstacle() {
   obstacles.push(o);
 }
 
-/* HUD */
+/* ---------------- INPUT ---------------- */
+
+window.addEventListener("keydown", e => {
+  if (!alive) return;
+
+  if (e.code === "Space" && !jumping) {
+    velocity = -12;
+    jumping = true;
+  }
+});
+
+/* ---------------- HUD ---------------- */
+
 function updateHUD() {
   document.getElementById("score").innerText = score.toFixed(0);
   document.getElementById("time").innerText = Math.floor(time);
   document.getElementById("speed").innerText = speed.toFixed(2);
+}
+
+/* ---------------- GAME OVER + NAME INPUT ---------------- */
+
+function endGame() {
+
+  alive = false;
+
+  document.getElementById("gameOver").classList.remove("hidden");
+
+  let name = prompt("Enter your name for leaderboard:");
+
+  if (name) saveScore(name, Math.floor(score));
+
+  setTimeout(() => {
+    location.reload();
+  }, 2000);
+}
+
+/* ---------------- LEADERBOARD ---------------- */
+
+function saveScore(name, score) {
+
+  let board = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+
+  board.push({ name, score });
+
+  board.sort((a,b) => b.score - a.score);
+
+  board = board.slice(0, 10);
+
+  localStorage.setItem("leaderboard", JSON.stringify(board));
+}
+
+function loadLeaderboard() {
+
+  let board = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+
+  let div = document.getElementById("leaderboard");
+
+  div.innerHTML = "";
+
+  board.forEach((p, i) => {
+    div.innerHTML += `${i+1}. ${p.name} - ${p.score}<br>`;
+  });
 }
