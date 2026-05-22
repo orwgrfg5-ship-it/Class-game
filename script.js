@@ -9,8 +9,12 @@ let jumping = false;
 
 let obstacles = [];
 
+let shakeTimer = 0;
+
 let gameLoop;
 let timerLoop;
+
+const colors = ["#ff004c","#00e5ff","#ffea00","#7dff00","#ff7b00"];
 
 function startGame() {
 
@@ -20,19 +24,21 @@ function startGame() {
 
   let diff = document.getElementById("difficulty").value;
 
-  score = diff === "easy" ? 50 :
-          diff === "normal" ? 50 :
-          diff === "hard" ? 100 :
-          diff === "hell" ? -200 : -500;
+  score =
+    diff === "easy" ? 50 :
+    diff === "normal" ? 50 :
+    diff === "hard" ? 100 :
+    diff === "hell" ? -200 : -500;
 
   speed = 6;
   time = 0;
   alive = true;
 
-  obstacles = [];
   playerY = 0;
   gravity = 0;
   jumping = false;
+
+  obstacles = [];
 
   spawnStart();
 
@@ -44,37 +50,43 @@ function startGame() {
 
     time++;
 
+    // SPEED SCALING
     if (time % 2 === 0) speed += 0.25;
+
+    // REWARDS
+    if (time === 5) score += 50;
     if (time % 10 === 0) score += 50;
 
-    updateHUD();
-
+    // FLASH COLORS
     document.body.style.background =
-      ["#ff004c","#00e5ff","#ffea00","#7dff00"][Math.floor(Math.random()*4)];
+      colors[Math.floor(Math.random() * colors.length)];
+
+    // RANDOM "RIG SPIKE"
+    if (Math.random() < 0.15 && time > 10) {
+      speed += 1.2;
+      triggerShake();
+    }
+
+    updateHUD();
 
   }, 1000);
 }
 
 /* JUMP */
 window.addEventListener("keydown", e => {
-
   if (!alive) return;
 
-  if (e.code === "Space") {
-    if (!jumping) {
-      gravity = -12;
-      jumping = true;
-    }
+  if (e.code === "Space" && !jumping) {
+    gravity = -12;
+    jumping = true;
   }
 });
 
 function updateGame() {
 
-  if (!alive) return;
-
   let player = document.getElementById("player");
 
-  /* gravity system */
+  // gravity motion
   gravity += 0.6;
   playerY -= gravity;
 
@@ -85,10 +97,8 @@ function updateGame() {
 
   player.style.bottom = (120 + playerY) + "px";
 
-  /* spawn obstacles */
-  if (Math.random() < 0.03) {
-    createObstacle();
-  }
+  // spawn obstacles
+  if (Math.random() < 0.04) createObstacle();
 
   obstacles.forEach(o => {
 
@@ -98,8 +108,9 @@ function updateGame() {
 
     o.style.left = x + "px";
 
-    /* collision */
+    // collision
     if (x < 170 && x > 100 && playerY < 50) {
+      triggerShake();
       endGame();
     }
 
@@ -108,6 +119,10 @@ function updateGame() {
       obstacles = obstacles.filter(e => e !== o);
     }
   });
+
+  // screen shake decay
+  if (shakeTimer > 0) shakeTimer--;
+  else document.getElementById("game").classList.remove("shake");
 }
 
 function createObstacle() {
@@ -127,6 +142,11 @@ function createObstacle() {
 
 function spawnStart() {
   obstacles = [];
+}
+
+function triggerShake() {
+  document.getElementById("game").classList.add("shake");
+  shakeTimer = 10;
 }
 
 function updateHUD() {
