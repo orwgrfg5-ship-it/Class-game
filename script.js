@@ -1,86 +1,40 @@
-let speed = 1;
+let speed = 6;
 let score = 0;
 let time = 0;
 let alive = false;
 
-let playerLane = 2;
-let platforms = [];
+let playerY = 0;
+let gravity = 0;
+let jumping = false;
+
+let obstacles = [];
 
 let gameLoop;
 let timerLoop;
-let countdownLoop;
-
-const colors = ["#ff004c","#00e5ff","#ffea00","#7dff00","#ff7b00"];
-
-const diff = {
-  easy: 50,
-  normal: 50,
-  hard: 100,
-  hell: -200,
-  impossible: -500
-};
-
-let countdown = 10;
-let rigSpike = false;
 
 function startGame() {
 
   document.getElementById("menu").classList.add("hidden");
   document.getElementById("game").classList.remove("hidden");
   document.getElementById("hud").classList.remove("hidden");
-  document.getElementById("countdown").classList.remove("hidden");
 
-  let difficulty = document.getElementById("difficulty").value;
+  let diff = document.getElementById("difficulty").value;
 
-  score = diff[difficulty];
-  speed = 1;
+  score = diff === "easy" ? 50 :
+          diff === "normal" ? 50 :
+          diff === "hard" ? 100 :
+          diff === "hell" ? -200 : -500;
+
+  speed = 6;
   time = 0;
   alive = true;
 
-  playerLane = 2;
-  countdown = 10;
+  obstacles = [];
+  playerY = 0;
+  gravity = 0;
+  jumping = false;
 
-  platforms = [];
-
-  movePlayer();
-  spawnPlatforms();
-
-  startLoops();
-}
-
-function spawnPlatforms() {
-
-  document.querySelectorAll(".platform").forEach(p => p.remove());
-
-  for (let i = 0; i < 8; i++) {
-    createPlatform(i * 140);
-  }
-}
-
-function createPlatform(y) {
-
-  let lane = Math.floor(Math.random() * 5);
-
-  let p = document.createElement("div");
-
-  p.classList.add("platform");
-
-  p.classList.add(Math.random() > 0.28 ? "safe" : "danger");
-
-  p.style.bottom = y + "px";
-
-  p.dataset.lane = lane;
-
-  document.querySelectorAll(".lane")[lane].appendChild(p);
-
-  platforms.push(p);
-}
-
-function startLoops() {
-
-  clearInterval(gameLoop);
-  clearInterval(timerLoop);
-  clearInterval(countdownLoop);
+  spawnStart();
 
   gameLoop = setInterval(updateGame, 16);
 
@@ -90,112 +44,92 @@ function startLoops() {
 
     time++;
 
-    // SPEED SCALING (every 2 sec)
-    if (time % 2 === 0) speed += 0.12;
-
-    // SURVIVAL BONUS
-    if (time === 5) score += 50;
-
-    // TIMED REWARD
+    if (time % 2 === 0) speed += 0.25;
     if (time % 10 === 0) score += 50;
-
-    // FLASH EFFECT
-    document.body.style.background =
-      colors[Math.floor(Math.random() * colors.length)];
-
-    // RIG SYSTEM (fake “impossible moment” spikes)
-    if (time > 15 && Math.random() < 0.2) {
-      rigSpike = true;
-      setTimeout(() => rigSpike = false, 1200);
-    }
 
     updateHUD();
 
-  }, 1000);
-
-  countdownLoop = setInterval(() => {
-
-    if (!alive) return;
-
-    countdown--;
-
-    if (countdown <= 0) countdown = 10;
-
-    document.getElementById("countdown").innerText = countdown;
+    document.body.style.background =
+      ["#ff004c","#00e5ff","#ffea00","#7dff00"][Math.floor(Math.random()*4)];
 
   }, 1000);
 }
+
+/* JUMP */
+window.addEventListener("keydown", e => {
+
+  if (!alive) return;
+
+  if (e.code === "Space") {
+    if (!jumping) {
+      gravity = -12;
+      jumping = true;
+    }
+  }
+});
 
 function updateGame() {
 
   if (!alive) return;
 
-  platforms.forEach(p => {
+  let player = document.getElementById("player");
 
-    let y = parseFloat(p.style.bottom);
+  /* gravity system */
+  gravity += 0.6;
+  playerY -= gravity;
 
-    let finalSpeed = speed;
+  if (playerY < 0) {
+    playerY = 0;
+    jumping = false;
+  }
 
-    if (rigSpike) finalSpeed *= 1.7;
+  player.style.bottom = (120 + playerY) + "px";
 
-    y -= finalSpeed * 4;
+  /* spawn obstacles */
+  if (Math.random() < 0.03) {
+    createObstacle();
+  }
 
-    p.style.bottom = y + "px";
+  obstacles.forEach(o => {
 
-    if (y < -120) {
-      p.remove();
-      platforms = platforms.filter(x => x !== p);
-      createPlatform(900);
+    let x = parseFloat(o.style.left);
+
+    x -= speed;
+
+    o.style.left = x + "px";
+
+    /* collision */
+    if (x < 170 && x > 100 && playerY < 50) {
+      endGame();
     }
 
-    // collision zone
-    if (y < 120 && y > 40) {
-
-      let lane = parseInt(p.dataset.lane);
-
-      if (lane !== playerLane) {
-
-        // near miss detection
-        if (Math.abs(lane - playerLane) === 1) {
-          document.getElementById("player").classList.add("near");
-
-          setTimeout(() => {
-            document.getElementById("player").classList.remove("near");
-          }, 120);
-        }
-
-        endGame();
-      }
+    if (x < -100) {
+      o.remove();
+      obstacles = obstacles.filter(e => e !== o);
     }
   });
 }
 
-window.addEventListener("keydown", e => {
+function createObstacle() {
 
-  if (!alive) return;
+  let o = document.createElement("div");
 
-  if (e.key === "a" || e.key === "ArrowLeft") playerLane--;
-  if (e.key === "d" || e.key === "ArrowRight") playerLane++;
+  o.classList.add("obstacle");
 
-  if (playerLane < 0) playerLane = 0;
-  if (playerLane > 4) playerLane = 4;
+  o.classList.add(Math.random() > 0.5 ? "spike" : "block");
 
-  movePlayer();
-});
+  o.style.left = "100vw";
 
-function movePlayer() {
+  document.getElementById("game").appendChild(o);
 
-  let p = document.getElementById("player");
+  obstacles.push(o);
+}
 
-  let center = window.innerWidth / 2;
-  let laneWidth = 130;
-
-  p.style.left =
-    (center - 300 + playerLane * laneWidth) + "px";
+function spawnStart() {
+  obstacles = [];
 }
 
 function updateHUD() {
-
   document.getElementById("score").innerText = score;
   document.getElementById("time").innerText = time;
   document.getElementById("speed").innerText = speed.toFixed(1);
@@ -211,5 +145,4 @@ function endGame() {
 
   clearInterval(gameLoop);
   clearInterval(timerLoop);
-  clearInterval(countdownLoop);
 }
