@@ -18,7 +18,10 @@ body {
   gap: 20px;
 }
 
-h1 { font-size: 60px; }
+h1 {
+  font-size: 60px;
+  text-shadow: 0 0 20px cyan;
+}
 
 button, select {
   padding: 12px 20px;
@@ -34,25 +37,29 @@ button, select {
   justify-content: space-around;
   padding: 15px;
   font-weight: bold;
+  z-index: 10;
 }
 
+/* GAME AREA */
 #game {
   position: relative;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: black;
+  transition: 0.15s;
 }
 
 #track {
   position: absolute;
   bottom: 120px;
   width: 100%;
-  height: 4px;
+  height: 6px;
   background: white;
-  opacity: 0.3;
+  opacity: 0.25;
+  box-shadow: 0 0 20px white;
 }
 
+/* PLAYER (animated cube style) */
 #player {
   width: 50px;
   height: 50px;
@@ -60,19 +67,37 @@ button, select {
   position: absolute;
   bottom: 120px;
   left: 120px;
+  box-shadow: 0 0 25px cyan;
+  transition: transform 0.1s;
 }
 
+/* OBSTACLES */
 .obstacle {
   position: absolute;
   width: 50px;
   height: 50px;
   bottom: 120px;
+  box-shadow: 0 0 20px;
+  animation: pulse 0.3s infinite alternate;
 }
 
-.spike {
-  background: red;
+.spike { background: red; }
+.block { background: lime; }
+
+@keyframes pulse {
+  from { transform: scale(1); opacity: 0.8; }
+  to { transform: scale(1.15); opacity: 1; }
 }
 
-.block {
-  background: lime;
+/* SCREEN SHAKE EFFECT */
+.shake {
+  animation: shake 0.15s infinite;
+}
+
+@keyframes shake {
+  0% { transform: translate(0,0); }
+  25% { transform: translate(2px,-2px); }
+  50% { transform: translate(-2px,2px); }
+  75% { transform: translate(2px,2px); }
+  100% { transform: translate(0,0); }
 }
