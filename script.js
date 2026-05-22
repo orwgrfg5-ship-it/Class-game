@@ -11,48 +11,47 @@ let obstacles = [];
 
 const colors = ["#ff004c","#00e5ff","#ffea00","#7dff00","#ff7b00"];
 
-let last = 0;
+/* ---------------- MENU FLOW ---------------- */
 
-/* ---------------- MENU ---------------- */
+function hideAll() {
+  document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
+}
 
-function showPlay() {
-  hideAllMenus();
+function backToMenu() {
+  hideAll();
+  document.getElementById("menu").classList.remove("hidden");
+}
+
+function openPlay() {
+  hideAll();
   document.getElementById("playMenu").classList.remove("hidden");
 }
 
-function showRules() {
-  hideAllMenus();
+function openRules() {
+  hideAll();
   document.getElementById("rulesMenu").classList.remove("hidden");
 }
 
-function showLeaderboard() {
-  hideAllMenus();
+function openLeaderboard() {
+  hideAll();
   document.getElementById("leaderboardMenu").classList.remove("hidden");
   loadLeaderboard();
 }
 
-function backMenu() {
-  hideAllMenus();
-  document.getElementById("menu").classList.remove("hidden");
-}
-
-function hideAllMenus() {
-  document.getElementById("menu").classList.add("hidden");
-  document.getElementById("playMenu").classList.add("hidden");
-  document.getElementById("rulesMenu").classList.add("hidden");
-  document.getElementById("leaderboardMenu").classList.add("hidden");
-}
-
 /* ---------------- GAME START ---------------- */
 
-function startGame() {
+function startGame(diff) {
 
-  hideAllMenus();
+  hideAll();
 
   document.getElementById("game").classList.remove("hidden");
   document.getElementById("hud").classList.remove("hidden");
 
-  score = 0;
+  score = diff === "easy" ? 50 :
+          diff === "normal" ? 50 :
+          diff === "hard" ? 100 :
+          diff === "hell" ? -200 : -500;
+
   speed = 6;
   time = 0;
   alive = true;
@@ -66,7 +65,20 @@ function startGame() {
   requestAnimationFrame(loop);
 }
 
-/* ---------------- GAME LOOP ---------------- */
+/* ---------------- INPUT ---------------- */
+
+window.addEventListener("keydown", e => {
+  if (!alive) return;
+
+  if (e.code === "Space" && !jumping) {
+    velocity = -12;
+    jumping = true;
+  }
+});
+
+/* ---------------- LOOP ---------------- */
+
+let last = 0;
 
 function loop(t) {
 
@@ -81,7 +93,7 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 
-/* ---------------- UPDATE ---------------- */
+/* ---------------- GAME ---------------- */
 
 function update(dt) {
 
@@ -93,7 +105,7 @@ function update(dt) {
 
   if (Math.random() < 0.01) {
     document.body.style.background =
-      colors[Math.floor(Math.random() * colors.length)];
+      colors[Math.floor(Math.random()*colors.length)];
   }
 
   velocity += 0.6;
@@ -145,47 +157,32 @@ function createObstacle() {
   obstacles.push(o);
 }
 
-/* ---------------- INPUT ---------------- */
-
-window.addEventListener("keydown", e => {
-  if (!alive) return;
-
-  if (e.code === "Space" && !jumping) {
-    velocity = -12;
-    jumping = true;
-  }
-});
-
 /* ---------------- HUD ---------------- */
 
 function updateHUD() {
-  document.getElementById("score").innerText = score.toFixed(0);
+  document.getElementById("score").innerText = Math.floor(score);
   document.getElementById("time").innerText = Math.floor(time);
   document.getElementById("speed").innerText = speed.toFixed(2);
 }
 
-/* ---------------- GAME OVER + NAME INPUT ---------------- */
+/* ---------------- GAME OVER + LEADERBOARD ---------------- */
 
 function endGame() {
 
   alive = false;
 
-  document.getElementById("gameOver").classList.remove("hidden");
-
-  let name = prompt("Enter your name for leaderboard:");
+  let name = prompt("Enter name:");
 
   if (name) saveScore(name, Math.floor(score));
 
-  setTimeout(() => {
-    location.reload();
-  }, 2000);
+  location.reload();
 }
 
 /* ---------------- LEADERBOARD ---------------- */
 
 function saveScore(name, score) {
 
-  let board = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+  let board = JSON.parse(localStorage.getItem("board") || "[]");
 
   board.push({ name, score });
 
@@ -193,18 +190,18 @@ function saveScore(name, score) {
 
   board = board.slice(0, 10);
 
-  localStorage.setItem("leaderboard", JSON.stringify(board));
+  localStorage.setItem("board", JSON.stringify(board));
 }
 
 function loadLeaderboard() {
 
-  let board = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+  let board = JSON.parse(localStorage.getItem("board") || "[]");
 
   let div = document.getElementById("leaderboard");
 
   div.innerHTML = "";
 
-  board.forEach((p, i) => {
+  board.forEach((p,i) => {
     div.innerHTML += `${i+1}. ${p.name} - ${p.score}<br>`;
   });
 }
