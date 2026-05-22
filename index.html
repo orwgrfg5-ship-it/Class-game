@@ -7,66 +7,64 @@
 </head>
 <body>
 
-<!-- MENU -->
-<div id="menu">
+<!-- MAIN MENU -->
+<div id="menu" class="screen">
+  <div class="title">IMPULSE RUSH</div>
 
-  <h1>IMPULSE RUSH</h1>
-
-  <div id="menuButtons">
-    <button onclick="showPlay()">PLAY</button>
-    <button onclick="showRules()">RULES</button>
-    <button onclick="showLeaderboard()">LEADERBOARD</button>
+  <div class="menuBox">
+    <button onclick="openPlay()">PLAY</button>
+    <button onclick="openRules()">RULES</button>
+    <button onclick="openLeaderboard()">LEADERBOARD</button>
   </div>
-
 </div>
 
-<!-- PLAY MENU -->
-<div id="playMenu" class="hidden">
-  <h2>Select Difficulty</h2>
+<!-- PLAY -> DIFFICULTY -->
+<div id="playMenu" class="screen hidden">
+  <div class="titleSmall">SELECT DIFFICULTY</div>
 
-  <select id="difficulty">
-    <option value="easy">Easy</option>
-    <option value="normal" selected>Normal</option>
-    <option value="hard">Hard</option>
-    <option value="hell">Hell</option>
-    <option value="impossible">Impossible</option>
-  </select>
+  <div class="menuBox">
+    <button onclick="startGame('easy')">EASY</button>
+    <button onclick="startGame('normal')">NORMAL</button>
+    <button onclick="startGame('hard')">HARD</button>
+    <button onclick="startGame('hell')">HELL</button>
+    <button onclick="startGame('impossible')">IMPOSSIBLE</button>
 
-  <button onclick="startGame()">START</button>
-  <button onclick="backMenu()">BACK</button>
+    <button class="back" onclick="backToMenu()">BACK</button>
+  </div>
 </div>
 
 <!-- RULES -->
-<div id="rulesMenu" class="hidden">
-  <h2>RULES</h2>
+<div id="rulesMenu" class="screen hidden">
+  <div class="titleSmall">RULES</div>
 
   <div class="box">
+    Jump over obstacles.<br>
     Speed increases every 2 seconds.<br>
-    +50 at 5 seconds survival.<br>
+    +50 at 5 seconds.<br>
     +50 every 10 seconds.<br>
-    Don’t miss jumps.<br>
-    One mistake = death.
+    One mistake = game over.
   </div>
 
-  <button onclick="backMenu()">BACK</button>
+  <button class="back" onclick="backToMenu()">BACK</button>
 </div>
 
 <!-- LEADERBOARD -->
-<div id="leaderboardMenu" class="hidden">
-  <h2>LEADERBOARD</h2>
+<div id="leaderboardMenu" class="screen hidden">
+  <div class="titleSmall">LEADERBOARD</div>
 
   <div id="leaderboard"></div>
 
-  <button onclick="backMenu()">BACK</button>
+  <button class="back" onclick="backToMenu()">BACK</button>
 </div>
 
-<!-- GAME -->
+<!-- HUD -->
 <div id="hud" class="hidden">
   <div>SCORE: <span id="score">0</span></div>
   <div>TIME: <span id="time">0</span></div>
   <div>SPEED: <span id="speed">1</span>x</div>
 </div>
 
+<!-- GAME -->
 <div id="game" class="hidden">
   <div id="track"></div>
   <div id="player"></div>
@@ -74,8 +72,8 @@
 
 <!-- GAME OVER -->
 <div id="gameOver" class="hidden">
-  <h1>GAME OVER</h1>
-  <div>Score: <span id="finalScore"></span></div>
+  <div class="titleSmall">GAME OVER</div>
+  <div id="finalScore"></div>
 </div>
 
 <script src="script.js"></script>
